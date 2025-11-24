@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NXHW · Dashboard Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+
+<style>
+  :root {
+    /* 核心蓝白配色体系 */
+    --primary: #2563eb;       
+    --primary-dark: #1e40af;  
+    --primary-light: #eff6ff; 
+    --bg-main: #f8fafc;       
+    --bg-card: #ffffff;       
+    --text-main: #0f172a;     
+    --text-muted: #64748b;    
+    --border-color: #e2e8f0;  
+    --success: #10b981;       
+    --warning: #f59e0b;       
+    --danger: #ef4444;
+
+    --sidebar-width: 250px;
+    --header-height: 64px;
+    --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text-main); font-size: 14px;
+    background: var(--bg-main); min-height: 100vh;
+  }
+
+  /* --- Layout --- */
+  .app-container { display: flex; min-height: 100vh; }
+  
+  /* Sidebar */
+  .sidebar {
+    width: var(--sidebar-width); background: var(--bg-card);
+    border-right: 1px solid var(--border-color);
+    position: fixed; top: 0; bottom: 0; left: 0; z-index: 50;
+    display: flex; flex-direction: column;
+  }
+  .sidebar-brand {
+    height: var(--header-height); display: flex; align-items: center; padding: 0 24px;
+    font-size: 20px; font-weight: 700; color: var(--primary);
+    border-bottom: 1px solid var(--border-color);
+  }
+  .sidebar-brand i { margin-right: 10px; font-size: 24px; }
+  .menu { padding: 24px 12px; flex: 1; overflow-y: auto; }
+  .menu-item {
+    display: flex; align-items: center; padding: 12px 16px;
+    color: var(--text-muted); font-weight: 500; border-radius: 8px;
+    cursor: pointer; transition: var(--transition); margin-bottom: 4px;
+  }
+  .menu-item i { margin-right: 12px; font-size: 20px; opacity: 0.7; }
+  .menu-item:hover { background: var(--bg-main); color: var(--text-main); }
+  .menu-item.active {
+    background: var(--primary-light); color: var(--primary); font-weight: 600;
+  }
+  .menu-item.active i { opacity: 1; }
+  
+  .sidebar-footer { padding: 20px; border-top: 1px solid var(--border-color); }
+
+  /* Main Content */
+  .main-content {
+    flex: 1; margin-left: var(--sidebar-width); display: flex; flex-direction: column;
+  }
+
+  /* Header */
+  .header {
+    height: var(--header-height); background: var(--bg-card);
+    border-bottom: 1px solid var(--border-color);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 32px;
+    position: sticky; top: 0; z-index: 40;
+  }
+  .page-title { font-size: 18px; font-weight: 600; color: var(--text-main); }
+  .header-actions { display: flex; align-items: center; gap: 24px; }
+  .icon-btn { font-size: 20px; color: var(--text-muted); cursor: pointer; position: relative; transition: 0.2s; }
+  .icon-btn:hover { color: var(--primary); }
+  .icon-btn .badge {
+    position: absolute; top: -2px; right: -2px; width: 8px; height: 8px;
+    background: var(--danger); border-radius: 50%; border: 2px solid var(--bg-card);
+  }
+  .user-profile { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+  .avatar { 
+    width: 36px; height: 36px; background: var(--primary-light); color: var(--primary); 
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; 
+  }
+
+  /* Notification Dropdown */
+  .notification-dropdown {
+    position: absolute; top: 60px; right: 80px; width: 320px;
+    background: var(--bg-card); border: 1px solid var(--border-color);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-radius: 12px; padding: 0;
+    display: none; z-index: 100; overflow: hidden;
+  }
+  .notification-dropdown.show { display: block; animation: slideDown 0.2s ease; }
+  .note-header { padding: 12px 16px; background: var(--bg-main); font-weight: 600; border-bottom: 1px solid var(--border-color); }
+  .note-item { padding: 16px; border-bottom: 1px solid var(--border-color); font-size: 13px; cursor: pointer; transition: 0.2s; }
+  .note-item:hover { background: var(--bg-main); }
+  .note-item:last-child { border-bottom: none; }
+  .note-title { font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px;}
+  .note-time { color: var(--text-muted); font-size: 12px; margin-top: 4px; }
+
+  /* Page Body */
+  .page-wrap { padding: 32px; max-width: 1600px; margin: 0 auto; width: 100%; }
+
+  /* Summary Cards */
+  .summary-cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 32px; }
+  .sum-card {
+    background: var(--bg-card); padding: 24px; border-radius: 16px;
+    box-shadow: var(--card-shadow); display: flex; align-items: center; border: 1px solid var(--border-color);
+    transition: transform 0.2s;
+  }
+  .sum-card:hover { transform: translateY(-4px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+  .sum-icon {
+    width: 56px; height: 56px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin-right: 20px;
+  }
+  .sum-info h5 { color: var(--text-muted); font-weight: 500; font-size: 13px; margin-bottom: 6px; }
+  .sum-info h2 { font-size: 28px; font-weight: 700; color: var(--text-main); letter-spacing: -0.5px; }
+
+  /* Charts Grid */
+  .charts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 32px; }
+  .span-2 { grid-column: span 2; }
+  .content-card {
+    background: var(--bg-card); border-radius: 16px; box-shadow: var(--card-shadow);
+    padding: 24px; border: 1px solid var(--border-color);
+  }
+  .card-title { font-size: 16px; font-weight: 600; margin-bottom: 24px; color: var(--text-main); display: flex; justify-content: space-between; align-items: center; }
+  .chart-container { width: 100%; height: 320px; }
+
+  /* Tables & Inputs */
+  .search-row { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+  .input-group {
+    display: flex; align-items: center; background: var(--bg-card);
+    border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 16px;
+    flex: 1; max-width: 400px; transition: 0.2s;
+  }
+  .input-group:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+  .input-group i { color: var(--text-muted); margin-right: 12px; }
+  .input { border: none; background: transparent; flex: 1; font-size: 14px; width: 100%; }
+  
+  .btn {
+    padding: 8px 16px; border-radius: 8px; border: 1px solid transparent; cursor: pointer; font-weight: 500;
+    transition: var(--transition); display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
+  }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-outline { background: #fff; border-color: var(--border-color); color: var(--text-main); }
+  .btn-outline:hover { background: var(--bg-main); border-color: var(--text-muted); }
+  
+  table { width: 100%; border-collapse: separate; border-spacing: 0; }
+  th {
+    background: var(--bg-main); color: var(--text-muted); font-weight: 600; font-size: 12px;
+    padding: 16px; text-align: left; border-bottom: 1px solid var(--border-color); text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  td { padding: 16px; border-bottom: 1px solid var(--border-color); color: var(--text-main); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--primary-light); }
+
+  .badge-tag { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-block;}
+  .tag-blue { background: #dbeafe; color: #1e40af; }
+  .tag-green { background: #dcfce7; color: #166534; }
+  .tag-gray { background: #f1f5f9; color: #64748b; }
+
+  /* Modals */
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; z-index: 100; opacity: 0; transition: opacity 0.2s ease; }
+  .modal.show { display: flex; opacity: 1; }
+  .modal-box { background: var(--bg-card); width: 700px; max-width: 90%; border-radius: 16px; padding: 32px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); transform: scale(0.95); transition: transform 0.2s ease; }
+  .modal.show .modal-box { transform: scale(1); }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .close-btn { background: transparent; border: none; font-size: 24px; color: var(--text-muted); cursor: pointer; }
+  
+  /* Animations */
+  @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Responsive */
+  @media (max-width: 1200px) { .charts-grid, .summary-cards { grid-template-columns: repeat(2, 1fr); } .span-2 { grid-column: span 2; } }
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); transition: var(--transition); }
+    .main-content { margin-left: 0; }
+    .charts-grid, .summary-cards { grid-template-columns: 1fr; }
+    .span-2 { grid-column: span 1; }
+    .header { padding: 0 16px; }
+    .page-wrap { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <i class="ri-code-s-slash-line"></i> NXHW 
+    </div>
+    <div class="menu">
+      <div class="menu-item active" onclick="switchView('dashboard', this, '概览仪表盘')">
+        <i class="ri-dashboard-3-line"></i> 概览仪表盘
+      </div>
+      <div class="menu-item" onclick="switchView('studentsView', this, '学生管理')">
+        <i class="ri-user-smile-line"></i> 学生管理
+      </div>
+      <div class="menu-item" onclick="switchView('teachersView', this, '教师管理')">
+        <i class="ri-user-star-line"></i> 教师管理
+      </div>
+      <div class="menu-item" onclick="switchView('examsView', this, '考试安排')">
+        <i class="ri-calendar-event-line"></i> 考试安排
+      </div>
+      <div class="menu-item" onclick="switchView('examInfoView', this, '测验详情')">
+        <i class="ri-file-list-3-line"></i> 测验详情
+      </div>
+      <div class="menu-item" onclick="switchView('coursesView', this, '课程信息')">
+        <i class="ri-book-open-line"></i> 课程信息
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn btn-outline" style="width:100%; justify-content:center; color: var(--danger); border-color: rgba(239,68,68,0.2)" onclick="alert('已安全退出系统')">
+        <i class="ri-logout-box-r-line"></i> 退出登录
+      </button>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <header class="header">
+      <div class="page-title" id="pageTitle">概览仪表盘</div>
+      <div class="header-actions">
+        <div class="icon-btn" onclick="toggleNotifications()">
+          <i class="ri-notification-3-line"></i>
+          <span class="badge"></span>
+        </div>
+        <div class="user-profile">
+          <div class="avatar">A</div>
+          <span style="font-weight: 500;">Admin (Admin)</span>
+          <i class="ri-arrow-down-s-line" style="color: var(--text-muted)"></i>
+        </div>
+      </div>
+      
+      <div class="notification-dropdown" id="notificationDropdown">
+        <div class="note-header">消息通知</div>
+        <div class="note-item">
+          <div class="note-title"><i class="ri-information-fill" style="color:var(--primary)"></i> 资源下载</div>
+          <div><a href="download.html">点我前往资源下载页面</a></div>
+          <div class="note-time">10分钟前</div>
+        </div>
+        <div class="note-item">
+          <div class="note-title"><i class="ri-alert-fill" style="color:var(--warning)"></i> 系统维护</div>
+          <div>今晚 00:00 进行服务器升级维护。</div>
+          <div class="note-time">2小时前</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="page-wrap">
+      
+      <div id="dashboard" class="view-section fade-in">
+        <div class="summary-cards">
+          <div class="sum-card">
+            <div class="sum-icon" style="background:#eff6ff;color:#2563eb"><i class="ri-group-line"></i></div>
+            <div class="sum-info"><h5>在校学生总数</h5><h2 id="totalStudents">-</h2></div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-icon" style="background:#ecfdf5;color:#10b981"><i class="ri-check-double-line"></i></div>
+            <div class="sum-info"><h5>平均测验成绩</h5><h2 id="avgScore">-</h2></div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-icon" style="background:#fef3c7;color:#d97706"><i class="ri-book-mark-line"></i></div>
+            <div class="sum-info"><h5>当前开设课程</h5><h2 id="totalCourses">-</h2></div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-icon" style="background:#f3e8ff;color:#7e22ce"><i class="ri-file-user-line"></i></div>
+            <div class="sum-info"><h5>近期考试场次</h5><h2 id="totalExams">-</h2></div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="content-card">
+            <div class="card-title">学生男女比例 <i class="ri-pie-chart-line" style="color:var(--text-muted)"></i></div>
+            <div id="chartGender" class="chart-container"></div>
+          </div>
+          <div class="content-card span-2">
+            <div class="card-title">专业人数分布 <i class="ri-radar-line" style="color:var(--text-muted)"></i></div>
+            <div id="chartMajor" class="chart-container"></div>
+          </div>
+          <div class="content-card span-2">
+            <div class="card-title">学生成绩分布概览 <i class="ri-bar-chart-box-line" style="color:var(--text-muted)"></i></div>
+            <div id="chartScore" class="chart-container"></div>
+          </div>
+          <div class="content-card">
+            <div class="card-title">及格率仪表盘 <i class="ri-speed-mini-line" style="color:var(--text-muted)"></i></div>
+            <div id="chartPassRate" class="chart-container"></div>
+          </div>
+           <div class="content-card span-2">
+            <div class="card-title">年级人数统计 <i class="ri-line-chart-line" style="color:var(--text-muted)"></i></div>
+            <div id="chartGrade" class="chart-container"></div>
+          </div>
+          <div class="content-card">
+             <div class="card-title">教师授课工作量 <i class="ri-bar-chart-horizontal-line" style="color:var(--text-muted)"></i></div>
+             <div id="chartTeacherLoad" class="chart-container"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="studentsView" class="view-section" style="display:none">
+        <div class="content-card">
+          <div class="search-row">
+            <div class="input-group">
+              <i class="ri-search-line"></i>
+              <input class="input" id="studentSearch" placeholder="搜索姓名 / 班级..." oninput="applyStudentFilter()" />
+            </div>
+            <button class="btn btn-outline" onclick="resetStudentFilter()">重置</button>
+            <div style="flex:1"></div>
+            <button class="btn btn-primary"><i class="ri-add-line"></i> 新增学生</button>
+          </div>
+          <table aria-describedby="学生列表">
+            <thead><tr><th>姓名</th><th>班级</th><th>专业方向</th><th>年级</th><th>最新成绩</th><th>操作</th></tr></thead>
+            <tbody id="studentTable"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="teachersView" class="view-section" style="display:none">
+        <div class="content-card">
+           <div class="search-row">
+            <div class="input-group"><i class="ri-search-line"></i><input class="input" id="teacherSearch" placeholder="搜索教师 / 部门..." oninput="renderTeachers()" /></div>
+           </div>
+           <table>
+             <thead><tr><th>姓名</th><th>年龄</th><th>教授课程</th><th>所属部门</th><th>操作</th></tr></thead>
+             <tbody id="teacherTable"></tbody>
+           </table>
+         </div>
+      </div>
+
+      <div id="examsView" class="view-section" style="display:none">
+        <div class="content-card">
+           <div class="search-row">
+             <div class="input-group"><i class="ri-search-line"></i><input class="input" id="examSearch" placeholder="搜索考试名称..." oninput="renderExams()" /></div>
+           </div>
+           <table>
+             <thead><tr><th>考试名称</th><th>科目</th><th>时间</th><th>人数</th><th>监考员</th></tr></thead>
+             <tbody id="examTable"></tbody>
+           </table>
+        </div>
+      </div>
+
+      <div id="examInfoView" class="view-section" style="display:none">
+        <div class="content-card">
+           <div class="search-row">
+             <div class="input-group"><i class="ri-search-line"></i><input class="input" id="examInfoSearch" placeholder="搜索课程 / 教师..." oninput="renderExamInfo()" /></div>
+           </div>
+           <table>
+             <thead><tr><th>测验课程</th><th>测验时间</th><th>测验教师</th><th>测验人数</th><th>操作</th></tr></thead>
+             <tbody id="examInfoTable"></tbody>
+           </table>
+        </div>
+      </div>
+
+      <div id="coursesView" class="view-section" style="display:none">
+        <div class="content-card">
+           <div class="search-row">
+             <div class="input-group"><i class="ri-search-line"></i><input class="input" id="courseSearch" placeholder="搜索课程 / 教师..." oninput="renderCourses()" /></div>
+           </div>
+           <table>
+             <thead><tr><th>课程名称</th><th>开课时间</th><th>授课教师</th><th>课程状态</th><th>操作</th></tr></thead>
+             <tbody id="courseTable"></tbody>
+           </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div id="studentModal" class="modal" onclick="modalOverlayClick(event,'studentModal')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h3 id="studentModalTitle">学生详情</h3>
+      <button class="close-btn" onclick="closeStudentModal()"><i class="ri-close-line"></i></button>
+    </div>
+    <div id="studentModalBody" style="line-height:1.8; color: var(--text-muted)"></div>
+    <div style="margin-top:24px; text-align:right">
+       <button class="btn btn-primary" onclick="closeStudentModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div id="examModal" class="modal" onclick="modalOverlayClick(event,'examModal')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h3 id="examModalTitle">测验详情</h3>
+      <button class="close-btn" onclick="closeExamModal()"><i class="ri-close-line"></i></button>
+    </div>
+    <div id="examModalBody">
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:var(--bg-main)"><th style="padding:10px">学生姓名</th><th style="padding:10px">得分</th><th style="padding:10px">评语</th></tr></thead>
+        <tbody id="examModalTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===========================
+   1. FULL DATA RESTORATION
+   =========================== */
+const students = [
+  { id:1,name:"程语兴",cls:"intelligence-01",age:"2024年秋季学期",major:"人工智能-系统架构师",grade:"2024级",gender:"男",scores:[80],phone:"13800000001",email:"叶小楠" },
+  { id:2,name:"农秋峰",cls:"intelligence-01",age:"2024年秋季学期",major:"人工智能-系统架构师",grade:"2024级",gender:"男",scores:[85],phone:"13800000002",email:"叶小楠" },
+  { id:3,name:"黄世杰",cls:"intelligence-01",age:"2025年秋季学期",major:"人工智能-系统架构师",grade:"2025级",gender:"男",scores:[0],phone:"13800000002",email:"叶小楠" },
+  { id:4,name:"陈启添",cls:"intelligence-01",age:"2025年秋季学期",major:"人工智能-系统架构师",grade:"2025级",gender:"男",scores:[0],phone:"13800000002",email:"叶小楠" },
+  { id:5,name:"黄警威",cls:"intelligence-01",age:"2025年秋季学期",major:"人工智能-系统架构师",grade:"2025级",gender:"男",scores:[0],phone:"13800000002",email:"叶小楠" },
+  { id:6,name:"李俊昊",cls:"intelligence-02",age:"2024年秋季学期",major:"人工智能-前端开发工程师",grade:"2024级",gender:"男",scores:[87],phone:"13800000002",email:"Hi-Tao" },
+  { id:7,name:"潘润根",cls:"intelligence-02",age:"2024年秋季学期",major:"人工智能-前端开发工程师",grade:"2024级",gender:"男",scores:[66],phone:"13800000002",email:"Hi-Tao" },
+  { id:8,name:"卢裕龙",cls:"intelligence-02",age:"2024年秋季学期",major:"人工智能-前端开发工程师",grade:"2024级",gender:"男",scores:[70],phone:"13800000002",email:"Hi-Tao" },
+  { id:9,name:"杨慧琴",cls:"intelligence-02",age:"2025年秋季学期",major:"人工智能-前端开发工程师",grade:"2025级",gender:"女",scores:[41],phone:"13800000002",email:"Hi-Tao" },
+  { id:10,name:"凌财",cls:"intelligence-02",age:"2025年秋季学期",major:"人工智能-前端开发工程师",grade:"2025级",gender:"男",scores:[72],phone:"13800000002",email:"Hi-Tao" },
+  { id:11,name:"黄正宇",cls:"intelligence-03",age:"2024年秋季学期",major:"人工智能-机器人工程师",grade:"2024级",gender:"男",scores:[50],phone:"13800000002",email:"Xiang" },  
+  { id:12,name:"杜宇轩",cls:"intelligence-03",age:"2025年秋季学期",major:"人工智能-机器人工程师",grade:"2025级",gender:"男",scores:[40],phone:"13800000002",email:"Xiang" },  
+  { id:13,name:"杨演文",cls:"intelligence-03",age:"2025年秋季学期",major:"人工智能-机器人工程师",grade:"2025级",gender:"男",scores:[40],phone:"13800000002",email:"Xiang" },
+  { id:14,name:"赵鸿宁",cls:"intelligence-04",age:"2025年秋季学期",major:"人工智能-算法软件工程师",grade:"2025级",gender:"女",scores:[0],phone:"13800000002",email:"不要@我" },
+  { id:15,name:"张苏斌",cls:"intelligence-04",age:"2025年秋季学期",major:"人工智能-算法软件工程师",grade:"2025级",gender:"男",scores:[41],phone:"13800000002",email:"不要@我" },
+  { id:16,name:"李易萱",cls:"intelligence-04",age:"2025年秋季学期",major:"人工智能-算法软件工程师",grade:"2025级",gender:"女",scores:[20],phone:"13800000002",email:"不要@我" },
+  { id:17,name:"石成烨",cls:"intelligence-04",age:"2025年秋季学期",major:"人工智能-算法软件工程师",grade:"2025级",gender:"男",scores:[41],phone:"13800000002",email:"不要@我" }
+];
+
+const teachers = [
+  { id:1,name:"叶小楠",years:17,course:"Linux，Java，C++，Python",dept:"303人工智能",email:"admin@example.com" },
+  { id:2,name:"Hi-Tao",years:18,course:"Python，HTML",dept:"303人工智能",email:"admin@example.com" },
+  { id:3,name:"Xiang",years:18,course:"Python，HTML，ROS",dept:"303人工智能",email:"admin@example.com" },
+  { id:4,name:"不要@我",years:18,course:"Python",dept:"303人工智能",email:"admin@example.com" }
+];
+
+const exams = [
+  { id:1,name:"人工智能 - 一组 - 一次测验",subject:"Linux基础",time:"2025-01-05",num:2,pass:"叶小楠" },
+  { id:2,name:"人工智能 - 二组 - 一次测验",subject:"网页技术",time:"2025-03-12",num:5,pass:"Hi-Tao" },
+  { id:3,name:"人工智能 - 三组 - 一次测验",subject:"Python 基础（机器人编程方向）",time:"2025-03-12",num:3,pass:"Xiang" },
+  { id:4,name:"人工智能 - 四组 - 一次测验",subject:"Python 基础",time:"2025-03-12",num:3,pass:"Zhou" }
+];
+
+const examInfoList = [
+  {
+    id:1, course:"Linux基础", date:"2025-04-10", teacher:"叶小楠", count:2,
+    students:[
+      { name:"程语兴", score:80, comment:"继续加油！" },
+      { name:"农秋峰", score:85, comment:"继续加油！" },
+    ]
+  },
+  {
+    id:2, course:"网页技术", date:"2025-03-20", teacher:"Hi-Tao", count:5,
+    students:[
+      { name:"李俊昊", score:87, comment:"认真审题、温故而知新" },
+      { name:"潘润根", score:66, comment:"理论知识也很重要" },
+      { name:"卢裕龙", score:70, comment:"打字速度理论知识要提升" },
+      { name:"杨慧琴", score:41, comment:"不要气馁，继续加油" },
+      { name:"凌财", score:72, comment:"Very good" },
+    ]
+  },
+  {
+    id:3, course:"Python 基础（机器人编程方向）", date:"2025-04-10", teacher:"Xiang", count:3,
+    students:[
+      { name:"黄正宇", score:50, comment:"及格，再接再厉！" },
+      { name:"杜宇轩", score:40, comment:"有点吃力，希望再努力！" },
+      { name:"杨演文", score:40, comment:"有点吃力，希望再努力！" },
+    ]
+  },
+  {
+    id:4, course:"Python 基础", date:"2025-04-10", teacher:"周", count:3,
+    students:[
+      { name:"张苏斌", score:41, comment:"再接再厉" },
+      { name:"李易萱", score:20, comment:"基础不牢" },
+      { name:"石成烨", score:41, comment:"继续努力" },
+    ]
+  }
+];
+
+const courseList = [
+  { id:0, name:"人工智能技术基础", start:"2025-11-20", teacher:"叶小楠", hours:"开课", intro:"学习人工智能环境搭建" },
+  { id:1, name:"系统架构师", start:"2025-11-01", teacher:"叶小楠", hours:"开课", intro:"学习人工智能环境搭建" },
+  { id:2, name:"前端开发工程师", start:"2025-11-01", teacher:"Hi-Tao", hours:"开课", intro:"学习现代化Web框架" },   
+  { id:3, name:"机器人工程师", start:"2025-11-01", teacher:"Xiang", hours:"开课", intro:"学习ROS机器人控制技术" },
+  { id:4, name:"算法软件工程师", start:"2025-11-01", teacher:"不要@我", hours:"开课", intro:"学习Python算法设计" },
+  { id:5, name:"大数据环境搭建", start:"2024-06-01", teacher:"叶小楠", hours:"闭课", intro:"学习大数据技术站环境搭建" },
+  { id:6, name:"Python程序设计", start:"2024-06-01", teacher:"Hi-Tao", hours:"闭课", intro:"学习Python编程语言设计" },     
+  { id:7, name:"ECharts可视化设计", start:"2024-06-01", teacher:"Xiang", hours:"闭课", intro:"学习图表库的使用与编写" },     
+  { id:8, name:"MySQL数据库", start:"2024-06-20", teacher:"不要@我", hours:"闭课", intro:"MySQL基础教程" }
+];
+
+/* ===========================
+   2. UI LOGIC
+   =========================== */
+function switchView(viewId, el, title) {
+  document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.view-section').forEach(v => v.style.display = 'none');
+  
+  const target = document.getElementById(viewId);
+  target.style.display = 'block';
+  target.classList.remove('fade-in');
+  void target.offsetWidth; 
+  target.classList.add('fade-in');
+  
+  document.getElementById('pageTitle').innerText = title;
+
+  if(viewId === 'dashboard') {
+    setTimeout(resizeAllCharts, 100);
+  }
+}
+
+function toggleNotifications() { document.getElementById('notificationDropdown').classList.toggle('show'); }
+document.addEventListener('click', function(e) {
+  const d = document.getElementById('notificationDropdown');
+  if(!e.target.closest('.icon-btn') && !d.contains(e.target)) d.classList.remove('show');
+});
+
+/* ===========================
+   3. RENDER FUNCTIONS
+   =========================== */
+function renderStudents(list=students){
+  document.getElementById('studentTable').innerHTML = list.map(s=>`
+    <tr>
+      <td style="font-weight:600"><i class="ri-user-line" style="color:var(--primary);margin-right:6px"></i>${s.name}</td>
+      <td>${s.cls}</td>
+      <td>${s.major.replace('人工智能-', '')}</td>
+      <td><span class="badge-tag tag-blue">${s.grade}</span></td>
+      <td style="font-weight:600;color:${s.scores[0]>=60?'var(--success)':(s.scores[0]===0?'var(--text-muted)':'var(--danger)')}">${s.scores[0]} 分</td>
+      <td><button class="btn btn-outline" style="padding:4px 10px; font-size:12px" onclick="openStudentDetail(${s.id})">详情</button></td>
+    </tr>
+  `).join('');
+}
+function applyStudentFilter(){
+  const q = document.getElementById('studentSearch').value.trim().toLowerCase();
+  renderStudents(q ? students.filter(s=>s.name.includes(q)||s.cls.includes(q)) : students);
+}
+function resetStudentFilter(){ document.getElementById('studentSearch').value=''; renderStudents(); }
+
+function openStudentDetail(id){
+  const s = students.find(x=>x.id===id); if(!s) return;
+  document.getElementById('studentModalTitle').innerText = s.name + ' · 学生档案';
+  document.getElementById('studentModalBody').innerHTML = `
+    <div style="display:flex; gap:32px; flex-wrap:wrap">
+      <div style="flex:1; min-width:200px">
+         <p><strong>班级：</strong>${s.cls}</p>
+         <p><strong>专业：</strong>${s.major}</p>
+         <p><strong>年级：</strong>${s.grade}</p>
+         <p><strong>入学时间：</strong>${s.age}</p>
+      </div>
+      <div style="flex:1; min-width:200px">
+         <p><strong>性别：</strong>${s.gender}</p>
+         <p><strong>电话：</strong>${s.phone}</p>
+         <p><strong>直系导师：</strong>${s.email}</p>
+         <p><strong>最近成绩：</strong><span style="color:var(--primary);font-weight:bold">${s.scores[0]}</span></p>
+      </div>
+    </div>`;
+  document.getElementById('studentModal').classList.add('show');
+}
+function closeStudentModal(){ document.getElementById('studentModal').classList.remove('show'); }
+
+function renderTeachers(){
+  const q = document.getElementById('teacherSearch').value.trim().toLowerCase();
+  const list = q ? teachers.filter(t=>t.name.includes(q)||t.dept.includes(q)) : teachers;
+  document.getElementById('teacherTable').innerHTML = list.map(t=>`
+    <tr>
+      <td style="font-weight:600">${t.name}</td><td>${t.years}岁</td>
+      <td><span style="font-size:12px;color:var(--text-muted)">${t.course}</span></td>
+      <td>${t.dept}</td>
+      <td><button class="btn btn-outline" style="padding:4px 10px; font-size:12px" onclick="alert('${t.email}')">联系</button></td>
+    </tr>`).join('');
+}
+
+function renderExams(){
+  const q = document.getElementById('examSearch').value.trim().toLowerCase();
+  const list = q ? exams.filter(e=>e.name.includes(q)) : exams;
+  document.getElementById('examTable').innerHTML = list.map(e=>`
+    <tr><td style="font-weight:600">${e.name}</td><td>${e.subject}</td><td>${e.time}</td><td>${e.num}人</td><td>${e.pass}</td></tr>`).join('');
+}
+
+function renderExamInfo(){
+  const q = document.getElementById('examInfoSearch').value.trim().toLowerCase();
+  const list = q ? examInfoList.filter(e=>e.course.includes(q)||e.teacher.includes(q)) : examInfoList;
+  document.getElementById('examInfoTable').innerHTML = list.map(e=>`
+    <tr>
+      <td style="font-weight:600">${e.course}</td><td>${e.date}</td><td>${e.teacher}</td>
+      <td><span class="badge-tag tag-gray">${e.count} 人参考</span></td>
+      <td><button class="btn btn-outline" style="padding:4px 10px; font-size:12px" onclick="openExamDetail(${e.id})">成绩单</button></td>
+    </tr>`).join('');
+}
+
+function openExamDetail(id){
+  const e = examInfoList.find(x=>x.id===id); if(!e) return;
+  document.getElementById('examModalTitle').innerText = e.course + ' · 成绩单';
+  document.getElementById('examModalTable').innerHTML = e.students.map(s=>`
+    <tr>
+      <td style="padding:12px">${s.name}</td>
+      <td style="padding:12px; font-weight:600; color:${s.score>=60?'var(--success)':'var(--danger)'}">${s.score}</td>
+      <td style="padding:12px; font-size:13px; color:var(--text-muted)">${s.comment}</td>
+    </tr>`).join('');
+  document.getElementById('examModal').classList.add('show');
+}
+function closeExamModal(){ document.getElementById('examModal').classList.remove('show'); }
+
+function renderCourses(){
+  const q = document.getElementById('courseSearch').value.trim().toLowerCase();
+  const list = q ? courseList.filter(c=>c.name.includes(q)) : courseList;
+  document.getElementById('courseTable').innerHTML = list.map(c=>`
+    <tr>
+      <td style="font-weight:600">${c.name}</td><td>${c.start}</td><td>${c.teacher}</td>
+      <td><span class="badge-tag ${c.hours==='开课'?'tag-green':'tag-gray'}">${c.hours}</span></td>
+      <td><button class="btn btn-outline" style="padding:4px 10px; font-size:12px">大纲</button></td>
+    </tr>`).join('');
+}
+function modalOverlayClick(e,id){ if(e.target.id===id) document.getElementById(id).classList.remove('show'); }
+
+/* ===========================
+   4. DASHBOARD & CHARTS
+   =========================== */
+let chartInstances = [];
+
+function calcStats(){
+  document.getElementById('totalStudents').innerText = students.length;
+  document.getElementById('totalCourses').innerText = courseList.filter(c=>c.hours==='开课').length;
+  document.getElementById('totalExams').innerText = exams.length;
+  
+  const validScores = students.flatMap(s=>s.scores).filter(s=>s>0);
+  const avg = validScores.length ? Math.round(validScores.reduce((a,b)=>a+b,0)/validScores.length) : 0;
+  document.getElementById('avgScore').innerText = avg + "分";
+}
+
+function initCharts(){
+  const commonGrid = {left:10, right:20, bottom:10, top:40, containLabel:true};
+  
+  // 1. Gender Pie
+  const chartGender = echarts.init(document.getElementById('chartGender'));
+  chartGender.setOption({
+    color: ['#2563eb', '#f43f5e'],
+    tooltip: {trigger:'item'},
+    series: [{
+      type:'pie', radius:['45%','70%'], center:['50%','50%'],
+      itemStyle: {borderRadius:8, borderColor:'#fff', borderWidth:2},
+      label: {show:true, formatter:'{b}\n{c}人'},
+      data: [
+        {value:students.filter(s=>s.gender==='男').length, name:'男'},
+        {value:students.filter(s=>s.gender==='女').length, name:'女'}
+      ]
+    }]
+  });
+  chartInstances.push(chartGender);
+
+  // 2. Major Rose Chart (New Feature)
+  const chartMajor = echarts.init(document.getElementById('chartMajor'));
+  const majorMap = {};
+  students.forEach(s=> { const m = s.major.replace('人工智能-',''); majorMap[m] = (majorMap[m]||0)+1; });
+  const majorData = Object.keys(majorMap).map(k=>({value:majorMap[k], name:k}));
+  chartMajor.setOption({
+    color: ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b'],
+    tooltip: {trigger:'item'},
+    series: [{
+      type:'pie', radius:[20,100], center:['50%','55%'], roseType:'area',
+      itemStyle: {borderRadius:6},
+      data: majorData
+    }]
+  });
+  chartInstances.push(chartMajor);
+
+  // 3. Score Bar
+  const chartScore = echarts.init(document.getElementById('chartScore'));
+  const names = students.map(s=>s.name);
+  const scs = students.map(s=>s.scores[0]);
+  chartScore.setOption({
+    color: ['#3b82f6'], tooltip:{trigger:'axis'}, grid: commonGrid,
+    xAxis: {type:'category', data:names, axisLabel:{interval:0, rotate:45, fontSize:10, color:'#64748b'}, axisTick:{show:false}, axisLine:{show:false}},
+    yAxis: {type:'value', splitLine:{lineStyle:{type:'dashed', color:'#e2e8f0'}}},
+    series: [{type:'bar', data:scs, barMaxWidth:20, itemStyle:{borderRadius:[4,4,0,0]}}]
+  });
+  chartInstances.push(chartScore);
+
+  // 4. Pass Rate Gauge (New Feature)
+  const chartPassRate = echarts.init(document.getElementById('chartPassRate'));
+  const passCount = students.filter(s=>s.scores[0]>=60).length;
+  const passRate = Math.round((passCount/students.length)*100);
+  chartPassRate.setOption({
+    series: [{
+      type:'gauge', startAngle:180, endAngle:0, min:0, max:100,
+      splitNumber:5, itemStyle:{color:'#10b981'},
+      progress:{show:true, width:12}, pointer:{show:false},
+      axisLine:{lineStyle:{width:12, color:[[1,'#f1f5f9']]}},
+      axisTick:{show:false}, splitLine:{show:false}, axisLabel:{show:false},
+      detail: {valueAnimation:true, fontSize:30, fontWeight:'bold', color:'#0f172a', formatter:'{value}%', offsetCenter:[0,'-10%']},
+      data: [{value:passRate, name:'及格率'}]
+    }]
+  });
+  chartInstances.push(chartPassRate);
+
+  // 5. Grade Line
+  const chartGrade = echarts.init(document.getElementById('chartGrade'));
+  const grades = [...new Set(students.map(s=>s.grade))].sort();
+  const gData = grades.map(g=>students.filter(s=>s.grade===g).length);
+  chartGrade.setOption({
+    color: ['#8b5cf6'], tooltip:{trigger:'axis'}, grid: commonGrid,
+    xAxis: {type:'category', data:grades, axisTick:{show:false}, axisLine:{show:false}},
+    yAxis: {type:'value', splitLine:{lineStyle:{type:'dashed', color:'#e2e8f0'}}},
+    series: [{type:'line', data:gData, smooth:true, areaStyle:{opacity:0.2}, symbolSize:8}]
+  });
+  chartInstances.push(chartGrade);
+
+  // 6. Teacher Load Bar (New Feature)
+  const chartTeacherLoad = echarts.init(document.getElementById('chartTeacherLoad'));
+  // Count real courses from courseList
+  const tMap = {};
+  courseList.forEach(c => { tMap[c.teacher] = (tMap[c.teacher]||0) + 1; });
+  const tNames = Object.keys(tMap);
+  const tVals = Object.values(tMap);
+  chartTeacherLoad.setOption({
+    color: ['#f59e0b'], tooltip:{trigger:'axis'}, grid: commonGrid,
+    xAxis: {type:'value', splitLine:{show:false}},
+    yAxis: {type:'category', data:tNames, axisTick:{show:false}, axisLine:{show:false}},
+    series: [{type:'bar', data:tVals, barMaxWidth:16, itemStyle:{borderRadius:[0,4,4,0]}, label:{show:true, position:'right', formatter:'{c}门'}}]
+  });
+  chartInstances.push(chartTeacherLoad);
+}
+
+function resizeAllCharts(){ chartInstances.forEach(c => c.resize()); }
+window.addEventListener('resize', resizeAllCharts);
+
+function init(){
+  calcStats();
+  renderStudents();
+  renderTeachers();
+  renderExams();
+  renderExamInfo();
+  renderCourses();
+  initCharts();
+}
+init();
+</script>
+</body>
+</html>

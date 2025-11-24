@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NXHW · Dashboard</title>
+<!-- ECharts CDN -->
+<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+<style>
+  :root{
+    --bg:#f5f7fa; --card:#ffffff; --primary:#165DFF; --muted:#6B7280;
+    --shadow:0 6px 20px rgba(16,24,40,0.06); --radius:10px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:Inter, "Segoe UI", Helvetica, Arial, sans-serif}
+  body{background:var(--bg);color:#0f1724;font-size:14px;line-height:1.4}
+  /* topbar */
+  .topbar{
+    position:fixed;left:0;right:0;top:0;height:62px;background:rgba(255,255,255,0.95);
+    display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid #eef2f7;z-index:50;
+  }
+  .brand{color:var(--primary);font-weight:700;font-size:18px}
+  .user-area{display:flex;gap:12px;align-items:center}
+  .btn{background:var(--primary);color:#fff;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;text-decoration: none;}
+  .btn.ghost{background:transparent;color:var(--primary);border:1px solid rgba(21,93,255,0.08)}
+  /* layout */
+  .wrap{max-width:1200px;margin:92px auto 60px;padding:0 20px}
+  .tabs{display:flex;gap:16px;border-bottom:1px solid #e9eef6;padding-bottom:12px}
+  .tab{padding:10px 8px;cursor:pointer;color:var(--muted);border-radius:8px}
+  .tab.active{color:var(--primary);font-weight:600;border-bottom:3px solid var(--primary)}
+  .content{margin-top:18px}
+  /* charts */
+  .charts{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
+  .card h4{margin-bottom:8px;color:#111827;font-size:15px}
+  .chart{width:100%;height:260px}
+  /* search & table */
+  .search-row{display:flex;gap:12px;align-items:center;margin:14px 0}
+  .input{padding:8px 10px;border-radius:8px;border:1px solid #e6edf6;background:#fff;min-width:220px}
+  table{width:100%;border-collapse:collapse;margin-top:12px;background:var(--card);border-radius:8px;overflow:hidden;box-shadow:var(--shadow)}
+  th,td{padding:12px 14px;text-align:left;border-bottom:1px solid #f1f5f9}
+  tr:hover td{background:#fbfdff}
+  .op-btn{padding:6px 10px;border-radius:8px;border:0;background:var(--primary);color:#fff;cursor:pointer;font-size:13px}
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:80}
+  .modal.show{display:flex}
+  .modal-box{width:700px;max-width:95%;background:var(--card);border-radius:12px;padding:18px;box-shadow:0 10px 40px rgba(2,6,23,0.2)}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .modal-head h3{margin:0;font-size:18px;color:var(--primary)}
+  .close{border:0;background:transparent;font-size:18px;cursor:pointer}
+  /* responsive */
+  @media (max-width:960px){
+    .charts{grid-template-columns:repeat(1,1fr)}
+    .wrap{padding:0 12px}
+    .input{min-width:140px}
+    .chart{height:200px}
+  }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="brand">NXHW · StudentManagerPanel</div>
+  <div class="user-area">
+    <!-- <div style="color:var(--muted)">当前用户：Admin</div> -->
+    <button class="btn" onclick="logout()">退出</button>
+    <a class="btn" href="download.html">资源下载</a>
+  </div>
+</div>
+
+<!-- Main wrap -->
+<div class="wrap">
+  <!-- Tabs -->
+  <div class="tabs" role="tablist">
+    <div class="tab active" data-tab="students" onclick="switchTab('students')">学生管理</div>
+    <div class="tab" data-tab="teachers" onclick="switchTab('teachers')">教师管理</div>
+    <div class="tab" data-tab="exams" onclick="switchTab('exams')">考试信息</div>
+    <div class="tab" data-tab="examInfo" onclick="switchTab('examInfo')">测验信息</div>
+    <div class="tab" data-tab="courses" onclick="switchTab('courses')">课程信息</div>
+  </div>
+
+  <div class="content">
+    <!-- Charts area (shared across tabs but render once) -->
+    <div class="charts" id="chartsArea">
+      <div class="card">
+        <h4>男女比例</h4><div id="chartGender" class="chart"></div>
+      </div>
+      <div class="card">
+        <h4>成绩分布</h4><div id="chartScore" class="chart"></div>
+      </div>
+      <div class="card">
+        <h4>年级人数</h4><div id="chartGrade" class="chart"></div>
+      </div>
+    </div>
+
+    <!-- Students tab -->
+    <section id="students" class="tab-pane">
+      <div class="search-row">
+        <input class="input" id="studentSearch" placeholder="按姓名/班级搜索" oninput="applyStudentFilter()" />
+        <button class="btn ghost" onclick="resetStudentFilter()">重置</button>
+      </div>
+
+      <table aria-describedby="学生列表">
+        <thead>
+          <tr><th>学生姓名</th><th>所学方向</th><th>入队时间</th><th>所属专业</th><th>所属年级</th><th>操作</th></tr>
+        </thead>
+        <tbody id="studentTable"></tbody>
+      </table>
+    </section>
+
+    <!-- Teachers tab -->
+    <section id="teachers" class="tab-pane" style="display:none;margin-top:8px">
+      <div class="search-row">
+        <input class="input" id="teacherSearch" placeholder="按姓名/部门搜索" oninput="renderTeachers()" />
+      </div>
+      <table>
+        <thead><tr><th>姓名</th><th>年龄</th><th>教授课程</th><th>部门</th><th>操作</th></tr></thead>
+        <tbody id="teacherTable"></tbody>
+      </table>
+    </section>
+
+    <!-- Exams tab (original exam list) -->
+    <section id="exams" class="tab-pane" style="display:none;margin-top:8px">
+      <div class="search-row">
+        <input class="input" id="examSearch" placeholder="按考试/科目搜索" oninput="renderExams()" />
+      </div>
+      <table>
+        <thead><tr><th>考试名称</th><th>科目</th><th>时间</th><th>人数</th><th>监考员</th></tr></thead>
+        <tbody id="examTable"></tbody>
+      </table>
+    </section>
+
+    <!-- NEW: Exam Info (测验信息) -->
+    <section id="examInfo" class="tab-pane" style="display:none;margin-top:8px">
+      <div class="search-row">
+        <input class="input" id="examInfoSearch" placeholder="按测验课程/教师搜索" oninput="renderExamInfo()" />
+      </div>
+      <table>
+        <thead><tr><th>测验课程</th><th>测验时间</th><th>测验教师</th><th>测验人数</th><th>操作</th></tr></thead>
+        <tbody id="examInfoTable"></tbody>
+      </table>
+    </section>
+
+    <!-- NEW: Courses tab -->
+    <section id="courses" class="tab-pane" style="display:none;margin-top:8px">
+      <div class="search-row">
+        <input class="input" id="courseSearch" placeholder="按课程名/教师搜索" oninput="renderCourses()" />
+      </div>
+      <table>
+        <thead><tr><th>课程名称</th><th>开课时间</th><th>授课教师</th><th>课程状态</th><th>操作</th></tr></thead>
+        <tbody id="courseTable"></tbody>
+      </table>
+    </section>
+  </div>
+</div>
+
+<!-- Student Detail Modal -->
+<div id="studentModal" class="modal" onclick="modalOverlayClick(event,'studentModal')">
+  <div class="modal-box" role="dialog" aria-modal="true" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h3 id="studentModalTitle">学生详情</h3>
+      <button class="close" onclick="closeStudentModal()">✕</button>
+    </div>
+    <div id="studentModalBody"></div>
+  </div>
+</div>
+
+<!-- Exam Detail Modal (测验详情：学生名单 + 得分 + 教师评语) -->
+<div id="examModal" class="modal" onclick="modalOverlayClick(event,'examModal')">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h3 id="examModalTitle">测验详情</h3>
+      <button class="close" onclick="closeExamModal()">✕</button>
+    </div>
+    <div id="examModalBody">
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="background:#fafafa"><th style="padding:8px">学生姓名</th><th style="padding:8px">得分</th><th style="padding:8px">教师评语</th></tr></thead>
+        <tbody id="examModalTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===========================
+   Demo data (replace with real API responses)
+   =========================== */
+const students = [
+  { id:1,name:"程语兴",cls:"intelligence-01",age:"2024年秋季学期",major:"人工智能-系统架构师",grade:"2024级",gender:"男",scores:[80],phone:"13800000001",email:"叶小楠" },
+  { id:2,name:"农秋峰",cls:"intelligence-01",age:"2024年秋季学期",major:"人工智能-系统架构师",grade:"2024级",gender:"男",scores:[85],phone:"13800000002",email:"叶小楠" },
+  { id:3,name:"黄世杰",cls:"intelligence-01",age:"2025年秋季学期",major:"人工智能-系统架构师",grade:"2025级",gender:"男",scores:[0],phone:"13800000002",email:"叶小楠" },
+  { id:4,name:"陈启添",cls:"intelligence-01",age:"2025年秋季学期",major:"人工智能-系统架构师",grade:"2025级",gender:"男",scores:[0],phone:"13800000002",email:"叶小楠" },
+  { id:5,name:"黄警威",cls:"intelligence-01",age:"2025年秋季学期",major:"人工智能-系统架构师",grade:"2025级",gender:"男",scores:[0],phone:"13800000002",email:"叶小楠" },
+  { id:6,name:"李俊昊",cls:"intelligence-02",age:"2024年秋季学期",major:"人工智能-前端开发工程师",grade:"2024级",gender:"男",scores:[87],phone:"13800000002",email:"Hi-Tao" },
+  { id:7,name:"潘润根",cls:"intelligence-02",age:"2024年秋季学期",major:"人工智能-前端开发工程师",grade:"2024级",gender:"男",scores:[66],phone:"13800000002",email:"Hi-Tao" },
+  { id:8,name:"卢裕龙",cls:"intelligence-02",age:"2024年秋季学期",major:"人工智能-前端开发工程师",grade:"2024级",gender:"男",scores:[70],phone:"13800000002",email:"Hi-Tao" },
+  { id:9,name:"杨慧琴",cls:"intelligence-02",age:"2025年秋季学期",major:"人工智能-前端开发工程师",grade:"2025级",gender:"女",scores:[41],phone:"13800000002",email:"Hi-Tao" },
+  { id:10,name:"凌财",cls:"intelligence-02",age:"2025年秋季学期",major:"人工智能-前端开发工程师",grade:"2025级",gender:"男",scores:[72],phone:"13800000002",email:"Hi-Tao" },
+  { id:11,name:"黄正宇",cls:"intelligence-03",age:"2024年秋季学期",major:"人工智能-机器人工程师",grade:"2024级",gender:"男",scores:[50],phone:"13800000002",email:"Xiang" },  
+  { id:12,name:"杜宇轩",cls:"intelligence-03",age:"2025年秋季学期",major:"人工智能-机器人工程师",grade:"2025级",gender:"男",scores:[40],phone:"13800000002",email:"Xiang" },  
+  { id:13,name:"杨演文",cls:"intelligence-03",age:"2025年秋季学期",major:"人工智能-机器人工程师",grade:"2025级",gender:"男",scores:[40],phone:"13800000002",email:"Xiang" },
+  { id:14,name:"赵鸿宁",cls:"intelligence-04",age:"2025年秋季学期",major:"人工智能-算法软件工程师",grade:"2025级",gender:"女",scores:[0],phone:"13800000002",email:"不要@我" },
+  { id:15,name:"张苏斌",cls:"intelligence-04",age:"2025年秋季学期",major:"人工智能-算法软件工程师",grade:"2025级",gender:"男",scores:[41],phone:"13800000002",email:"不要@我" },
+  { id:16,name:"李易萱",cls:"intelligence-04",age:"2025年秋季学期",major:"人工智能-算法软件工程师",grade:"2025级",gender:"女",scores:[20],phone:"13800000002",email:"不要@我" },
+  { id:17,name:"石成烨",cls:"intelligence-04",age:"2025年秋季学期",major:"人工智能-算法软件工程师",grade:"2025级",gender:"男",scores:[41],phone:"13800000002",email:"不要@我" }
+];
+
+const teachers = [
+  { id:1,name:"叶小楠",years:17,course:"Linux，Java，C++，Python",dept:"303人工智能",email:"admin@example.com" },
+  { id:2,name:"Hi-Tao",years:18,course:"Python，HTML",dept:"303人工智能",email:"admin@example.com" },
+  { id:3,name:"Xiang",years:18,course:"Python，HTML，ROS",dept:"303人工智能",email:"admin@example.com" },
+  { id:4,name:"不要@我",years:18,course:"Python",dept:"303人工智能",email:"admin@example.com" }
+];
+
+const exams = [
+  { id:1,name:"人工智能 - 一组 - 一次测验",subject:"Linux基础",time:"2025-01-05",num:2,pass:"叶小楠" },
+  { id:2,name:"人工智能 - 二组 - 一次测验",subject:"网页技术",time:"2025-03-12",num:5,pass:"Hi-Tao" },
+  { id:3,name:"人工智能 - 三组 - 一次测验",subject:"Python 基础（机器人编程方向）",time:"2025-03-12",num:3,pass:"Xiang" },
+  { id:4,name:"人工智能 - 四组 - 一次测验",subject:"Python 基础",time:"2025-03-12",num:3,pass:"Zhou" }
+]
+
+/* 测验信息（examInfo）——包含参加学生和教师评语 */
+const examInfoList = [
+  {
+    id:1, course:"Linux基础", date:"2025-04-10", teacher:"叶小楠", count:2,
+    students:[
+      { name:"程语兴", score:80, comment:"继续加油！" },
+      { name:"农秋峰", score:85, comment:"继续加油！" },
+    ]
+  },
+  {
+    id:2, course:"网页技术", date:"2025-03-20", teacher:"Hi-Tao", count:5,
+    students:[
+      { name:"李俊昊", score:87, comment:"认真审题、温故而知新" },
+      { name:"潘润根", score:66, comment:"理论知识也很重要" },
+      { name:"卢裕龙", score:70, comment:"打字速度理论知识要提升" },
+      { name:"杨慧琴", score:41, comment:"不要气馁，继续加油" },
+      { name:"凌财", score:72, comment:"Very good" },
+    ]
+  },
+  {
+    id:3, course:"Python 基础（机器人编程方向）", date:"2025-04-10", teacher:"Xiang", count:3,
+    students:[
+      { name:"黄正宇", score:50, comment:"及格，再接再厉！" },
+      { name:"杜宇轩", score:40, comment:"有点吃力，希望再努力！" },
+      { name:"杨演文", score:40, comment:"有点吃力，希望再努力！" },
+    ]
+  },
+  {
+    id:4, course:"Python 基础", date:"2025-04-10", teacher:"周", count:3,
+    students:[
+      { name:"张苏斌", score:41, comment:"再接再厉" },
+      { name:"李易萱", score:20, comment:"基础不牢" },
+      { name:"石成烨", score:41, comment:"继续努力" },
+    ]
+  }
+];
+
+/* 课程信息 */
+const courseList = [
+  { id:1, name:"系统架构师", start:"2025-11-01", teacher:"叶小楠", hours:"开课", intro:"学习人工智能环境搭建" },
+  { id:2, name:"前端开发工程师", start:"2025-11-01", teacher:"Hi-Tao", hours:"开课", intro:"学习现代化Web框架" },   
+  { id:3, name:"机器人工程师", start:"2025-11-01", teacher:"Xiang", hours:"开课", intro:"学习ROS机器人控制技术" },
+  { id:4, name:"算法软件工程师", start:"2025-11-01", teacher:"不要@我", hours:"开课", intro:"学习Python算法设计" },
+  { id:5, name:"大数据环境搭建", start:"2024-06-01", teacher:"叶小楠", hours:"闭课", intro:"学习大数据技术站环境搭建" },
+  { id:6, name:"Python程序设计", start:"2024-06-01", teacher:"Hi-Tao", hours:"闭课", intro:"学习Python编程语言设计" },     
+  { id:7, name:"ECharts可视化设计", start:"2024-06-01", teacher:"Xiang", hours:"闭课", intro:"学习图表库的使用与编写" },     
+  { id:8, name:"MySQL数据库", start:"2024-06-20", teacher:"不要@我", hours:"闭课", intro:"MySQL基础教程" }
+];
+
+/* ===========================
+   Utilities & Tab control
+   =========================== */
+function logout(){ alert("退出成功"); /* redirect to login if needed */ }
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.style.display='none');
+  document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById(tab).style.display = 'block';
+  // Load data / charts for specific tabs if needed
+  if(tab === 'examInfo') renderExamInfo();
+  if(tab === 'courses') renderCourses();
+}
+
+/* ===========================
+   Students: render & modal
+   =========================== */
+function renderStudents(list=students){
+  const tbody = document.getElementById('studentTable');
+  tbody.innerHTML = list.map(s=>`
+    <tr>
+      <td>${s.name}</td>
+      <td>${s.cls}</td>
+      <td>${s.age}</td>
+      <td>${s.major}</td>
+      <td>${s.grade}</td>
+      <td><button class="op-btn" onclick="openStudentDetail(${s.id})">查看详情</button></td>
+    </tr>
+  `).join('');
+}
+function applyStudentFilter(){
+  const q = document.getElementById('studentSearch').value.trim().toLowerCase();
+  if(!q) return renderStudents();
+  const filtered = students.filter(s=> s.name.toLowerCase().includes(q) || s.cls.toLowerCase().includes(q));
+  renderStudents(filtered);
+}
+function resetStudentFilter(){ document.getElementById('studentSearch').value=''; renderStudents(); }
+
+/* Student modal */
+function openStudentDetail(id){
+  const s = students.find(x=>x.id===id);
+  if(!s) return;
+  document.getElementById('studentModalTitle').innerText = `${s.name} · 详细信息`;
+  const body = document.getElementById('studentModalBody');
+  body.innerHTML = `
+    <div style="display:flex;gap:16px;align-items:flex-start">
+      <div style="min-width:220px">
+        <p><strong>姓名：</strong>${s.name}</p>
+        <p><strong>性别：</strong>${s.gender}</p>
+        <p><strong>班级：</strong>${s.cls}</p>
+        <p><strong>专业：</strong>${s.major}</p>
+        <p><strong>年级：</strong>${s.grade}</p>
+        <p><strong>直系学长：</strong>${s.email}</p>
+      </div>
+
+    </div>
+    <div style="margin-top:14px;text-align:right">
+      <button class="btn" onclick="closeStudentModal()">关闭</button>
+    </div>
+  `;
+  document.getElementById('studentModal').classList.add('show');
+}
+function closeStudentModal(){ document.getElementById('studentModal').classList.remove('show'); }
+
+/* Overlay click close */
+function modalOverlayClick(e, id){
+  if(e.target.id === id) document.getElementById(id).classList.remove('show');
+}
+
+/* ===========================
+   Teachers & Exams render
+   =========================== */
+function renderTeachers(){
+  const q = document.getElementById('teacherSearch').value.trim().toLowerCase();
+  const list = q ? teachers.filter(t=>t.name.toLowerCase().includes(q)||t.dept.toLowerCase().includes(q)) : teachers;
+  document.getElementById('teacherTable').innerHTML = list.map(t=>`
+    <tr>
+      <td>${t.name}</td><td>${t.years} 岁</td><td>${t.course}</td><td>${t.dept}</td>
+      <td><button class="op-btn" onclick="alert('教师详情：${t.name}\\n邮箱：${t.email}')">查看</button></td>
+    </tr>
+  `).join('');
+}
+function renderExams(){
+  const q = document.getElementById('examSearch').value.trim().toLowerCase();
+  const list = q ? exams.filter(e=>e.name.toLowerCase().includes(q)||e.subject.toLowerCase().includes(q)) : exams;
+  document.getElementById('examTable').innerHTML = list.map(e=>`
+    <tr>
+      <td>${e.name}</td><td>${e.subject}</td><td>${e.time}</td><td>${e.num}</td><td>${e.pass}</td>
+    </tr>
+  `).join('');
+}
+
+/* ===========================
+   Exam Info (测验信息) and modal
+   =========================== */
+function renderExamInfo(){
+  const q = document.getElementById('examInfoSearch').value.trim().toLowerCase();
+  const list = q ? examInfoList.filter(e=>e.course.toLowerCase().includes(q)||e.teacher.toLowerCase().includes(q)) : examInfoList;
+  document.getElementById('examInfoTable').innerHTML = list.map(e=>`
+    <tr>
+      <td>${e.course}</td>
+      <td>${e.date}</td>
+      <td>${e.teacher}</td>
+      <td>${e.count}</td>
+      <td><button class="op-btn" onclick="openExamDetail(${e.id})">详情</button></td>
+    </tr>
+  `).join('');
+}
+function openExamDetail(id){
+  const e = examInfoList.find(x=>x.id===id);
+  if(!e) return;
+  document.getElementById('examModalTitle').innerText = `${e.course} · 测验详情`;
+  document.getElementById('examModalTable').innerHTML = e.students.map(s=>`
+    <tr>
+      <td style="padding:8px">${s.name}</td><td style="padding:8px">${s.score}</td><td style="padding:8px">${s.comment}</td>
+    </tr>
+  `).join('');
+  document.getElementById('examModal').classList.add('show');
+}
+function closeExamModal(){ document.getElementById('examModal').classList.remove('show'); }
+
+/* ===========================
+   Courses
+   =========================== */
+function renderCourses(){
+  const q = document.getElementById('courseSearch').value.trim().toLowerCase();
+  const list = q ? courseList.filter(c=>c.name.toLowerCase().includes(q)||c.teacher.toLowerCase().includes(q)) : courseList;
+  document.getElementById('courseTable').innerHTML = list.map(c=>`
+    <tr>
+      <td>${c.name}</td><td>${c.start}</td><td>${c.teacher}</td><td>${c.hours || '-'}</td>
+      <td><button class="op-btn" onclick="alert('课程：${c.name}\\n授课：${c.teacher}\\n简介：${c.intro}')">查看</button></td>
+    </tr>
+  `).join('');
+}
+
+/* ===========================
+   Charts (ECharts)
+   =========================== */
+function initCharts(){
+  // gender pie
+  const genderChart = echarts.init(document.getElementById('chartGender'));
+  const male = students.filter(s=>s.gender==='男').length;
+  const female = students.filter(s=>s.gender==='女').length;
+  genderChart.setOption({
+    tooltip:{trigger:'item'}, legend:{bottom:8},
+    series:[{type:'pie',radius:['80%','20%'],label:{formatter:'{b}: {d}%'},data:[{value:male,name:'男'},{value:female,name:'女'}]}]
+  });
+
+  // score bar
+  const scoreChart = echarts.init(document.getElementById('chartScore'));
+  const names = students.map(s=>s.name);
+  const avgScores = students.map(s=>Math.round(s.scores.reduce((a,b)=>a+b,0)/s.scores.length));
+  scoreChart.setOption({
+    xAxis:{type:'category',data:names,axisLabel:{rotate:20}},
+    yAxis:{type:'value',min:0,max:100},
+    tooltip:{trigger:'axis'}, grid:{bottom:40},
+    series:[{type:'bar',data:avgScores,barMaxWidth:40}]
+  });
+
+  // grade distribution line
+  const gradeChart = echarts.init(document.getElementById('chartGrade'));
+  const grades = [...new Set(students.map(s=>s.grade))];
+  const counts = grades.map(g=>students.filter(s=>s.grade===g).length);
+  gradeChart.setOption({
+    xAxis:{type:'category',data:grades},
+    yAxis:{type:'value',min:0},
+    tooltip:{trigger:'axis'},
+    series:[{type:'line',data:counts,smooth:true}]
+  });
+
+  // responsive handling
+  window.addEventListener('resize', ()=>{ genderChart.resize(); scoreChart.resize(); gradeChart.resize(); });
+}
+
+/* ===========================
+   Init (render initial UI)
+   =========================== */
+function init(){
+  renderStudents();
+  renderTeachers();
+  renderExams();
+  renderExamInfo();
+  renderCourses();
+  initCharts();
+}
+init();
+</script>
+</body>
+</html>
