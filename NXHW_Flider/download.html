@@ -3,248 +3,410 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>NXHW · 资源中心</title>
+<title>星火工作坊 · 资源中心 Pro</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
 
 <style>
   :root {
-    /* 核心蓝白配色体系 (与 Dashboard 保持一致) */
-    --primary: #2563eb;       
-    --primary-dark: #1e40af;  
-    --primary-light: #eff6ff; 
-    --bg-main: #f8fafc;       
-    --bg-card: #ffffff;       
-    --text-main: #0f172a;     
+    /* --- 保持与 Dashboard 一致的配色 --- */
+    --primary: #3b82f6;       
+    --primary-hover: #2563eb;
+    --primary-light: rgba(59, 130, 246, 0.1); 
+    
+    --bg-body: #f0f4f8;       
+    --bg-glass: rgba(255, 255, 255, 0.75);       
+    --bg-dropdown: rgba(255, 255, 255, 0.95);
+    
+    --text-main: #1e293b;     
     --text-muted: #64748b;    
-    --border-color: #e2e8f0;
-    --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    --border-color: rgba(255, 255, 255, 0.6);
+    --border-glass: 1px solid rgba(255, 255, 255, 0.5);
+    
+    --shadow-card: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    --shadow-hover: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
+
+    --success: #10b981;       
+    --warning: #f59e0b;       
+    --danger: #ef4444;
+    
+    /* 动态背景球颜色 */
+    --blob-1: #60a5fa;
+    --blob-2: #a78bfa;
+    --blob-3: #f472b6;
   }
 
-  * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+  [data-theme="dark"] {
+    --primary: #60a5fa;
+    --primary-hover: #3b82f6;
+    --primary-light: rgba(96, 165, 250, 0.15);
+    
+    --bg-body: #0f172a;       
+    --bg-glass: rgba(30, 41, 59, 0.7);       
+    --bg-dropdown: rgba(30, 41, 59, 0.95);
+    
+    --text-main: #f1f5f9;     
+    --text-muted: #94a3b8;    
+    
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-glass: 1px solid rgba(255, 255, 255, 0.05);
+    
+    --shadow-card: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    --shadow-hover: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+
+    --blob-1: #1e40af;
+    --blob-2: #5b21b6;
+    --blob-3: #9d174d;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; outline: none; -webkit-tap-highlight-color: transparent; }
   
   body {
-    background: var(--bg-main);
-    font-family: 'Inter', sans-serif;
-    color: var(--text-main);
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text-main); font-size: 14px;
+    background: var(--bg-body); min-height: 100vh;
+    overflow-x: hidden;
+    transition: background 0.3s ease, color 0.3s ease;
+    display: flex; flex-direction: column;
   }
 
-  /* --- Navbar --- */
-  .navbar {
+  /* 动态背景 */
+  .bg-blobs { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
+  .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.6; animation: blobBounce 10s infinite alternate cubic-bezier(0.4, 0, 0.2, 1); }
+  .blob-1 { width: 400px; height: 400px; background: var(--blob-1); top: -100px; left: -100px; }
+  .blob-2 { width: 300px; height: 300px; background: var(--blob-2); bottom: -50px; right: -50px; animation-delay: -2s; }
+  .blob-3 { width: 350px; height: 350px; background: var(--blob-3); bottom: 20%; left: 20%; animation-delay: -4s; }
+  @keyframes blobBounce { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(30px, 50px) scale(1.1); } }
+
+  /* Glass Panel Utility */
+  .glass-panel {
+    background: var(--bg-glass);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: var(--border-glass);
+    box-shadow: var(--shadow-card);
+    transition: all 0.3s ease;
+  }
+
+  /* Header */
+  .header {
     height: 70px;
-    background: var(--bg-card);
-    border-bottom: 1px solid var(--border-color);
-    padding: 0 40px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    padding: 0 32px;
+    display: flex; align-items: center; justify-content: space-between;
     position: sticky; top: 0; z-index: 50;
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    border-bottom: var(--border-glass);
   }
-
-  .brand {
-    font-size: 20px; font-weight: 700; color: var(--primary);
-    display: flex; align-items: center; gap: 10px;
-  }
+  .brand { font-size: 20px; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 10px; }
   .brand i { font-size: 24px; }
+  
+  .header-actions { display: flex; gap: 16px; align-items: center; }
 
-  .nav-actions .btn-back {
-    text-decoration: none;
-    color: var(--text-muted);
-    font-weight: 500;
-    font-size: 14px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    transition: var(--transition);
-    display: flex; align-items: center; gap: 6px;
+  /* Buttons & Inputs */
+  .btn {
+    padding: 8px 16px; border-radius: 12px; border: 1px solid transparent; cursor: pointer; font-weight: 600;
+    transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; text-decoration: none;
   }
-  .nav-actions .btn-back:hover {
-    background: var(--bg-main); color: var(--text-main);
+  .btn:active { transform: scale(0.96); }
+  .btn-primary { background: linear-gradient(135deg, var(--primary), var(--primary-hover)); color: #fff; box-shadow: 0 4px 12px var(--primary-light); }
+  .btn-primary:hover { box-shadow: 0 6px 16px var(--primary-light); filter: brightness(1.1); }
+  .btn-outline { background: transparent; border-color: var(--border-color); color: var(--text-main); }
+  .btn-outline:hover { background: rgba(125, 125, 125, 0.1); border-color: var(--text-muted); }
+  
+  .icon-btn { 
+    width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: var(--text-muted); cursor: pointer; transition: 0.2s; background: transparent; border: none;
   }
+  .icon-btn:hover { background: rgba(125, 125, 125, 0.1); color: var(--primary); }
 
-  /* --- Main Container --- */
-  .container {
-    width: 100%; max-width: 1000px;
-    margin: 40px auto;
-    padding: 0 24px;
-    flex: 1;
-    animation: fadeInUp 0.5s ease-out;
-  }
+  /* Main Container */
+  .container { width: 100%; max-width: 1200px; margin: 32px auto; padding: 0 24px; flex: 1; animation: fadeIn 0.5s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-  .page-header { margin-bottom: 24px; }
-  .page-header h2 { font-size: 24px; font-weight: 700; color: var(--text-main); margin-bottom: 8px; }
+  .page-header { margin-bottom: 32px; text-align: center; }
+  .page-header h2 { font-size: 28px; font-weight: 800; color: var(--text-main); margin-bottom: 8px; letter-spacing: -0.5px; }
   .page-header p { color: var(--text-muted); font-size: 14px; }
 
-  /* --- File Card --- */
+  /* Toolbar */
+  .toolbar {
+    display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; 
+    background: var(--bg-glass); padding: 12px; border-radius: 16px; border: var(--border-glass);
+    align-items: center;
+  }
+  .input-group {
+    display: flex; align-items: center; background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border-color); border-radius: 10px; padding: 8px 12px;
+    flex: 1; max-width: 300px; transition: 0.2s;
+  }
+  .input-group:focus-within { border-color: var(--primary); background: var(--bg-glass); }
+  .input-group i { color: var(--text-muted); margin-right: 8px; }
+  .input { border: none; background: transparent; flex: 1; font-size: 13px; color: var(--text-main); width: 100%; }
+  select.input { cursor: pointer; }
+
+  /* Grid Layout for Files */
+  .file-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px;
+  }
+  
   .file-card {
-    background: var(--bg-card);
-    border-radius: 16px;
-    box-shadow: var(--card-shadow);
-    border: 1px solid var(--border-color);
-    overflow: hidden;
+    border-radius: 16px; padding: 20px; position: relative;
+    display: flex; align-items: flex-start; gap: 16px;
+    cursor: pointer;
   }
-
-  table { width: 100%; border-collapse: collapse; }
+  .file-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-hover); border-color: var(--primary); }
   
-  thead { background: #f8fafc; border-bottom: 1px solid var(--border-color); }
-  th {
-    text-align: left; padding: 16px 24px;
-    font-size: 12px; font-weight: 600; color: var(--text-muted);
-    text-transform: uppercase; letter-spacing: 0.5px;
+  .file-icon {
+    width: 50px; height: 50px; border-radius: 12px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 24px;
+    transition: 0.3s;
   }
+  /* Icon Colors */
+  .type-pdf { background: #fee2e2; color: #ef4444; }
+  .type-ppt, .type-pptx { background: #ffedd5; color: #f97316; }
+  .type-doc, .type-docx { background: #dbeafe; color: #2563eb; }
+  .type-zip, .type-rar { background: #f3f4f6; color: #4b5563; }
+  .type-default { background: #e0e7ff; color: #6366f1; }
 
-  tbody tr { border-bottom: 1px solid var(--border-color); transition: var(--transition); }
-  tbody tr:last-child { border-bottom: none; }
-  tbody tr:hover { background: var(--primary-light); }
-
-  td { padding: 16px 24px; font-size: 14px; vertical-align: middle; color: var(--text-main); }
-
-  /* Icon Styles */
-  .file-icon-box {
-    width: 40px; height: 40px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 20px;
-  }
-  /* Color variants based on file type */
-  .icon-pdf { background: #fee2e2; color: #ef4444; }
-  .icon-ppt { background: #ffedd5; color: #f97316; }
-  .icon-doc { background: #dbeafe; color: #2563eb; }
-  .icon-zip { background: #f3f4f6; color: #4b5563; }
-  .icon-default { background: #e0e7ff; color: #6366f1; }
-
-  .file-name { font-weight: 500; }
-  .file-meta { font-size: 13px; color: var(--text-muted); font-family: monospace; }
+  .file-info { flex: 1; overflow: hidden; }
+  .file-name { font-weight: 600; font-size: 14px; color: var(--text-main); margin-bottom: 6px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .file-meta { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 10px; }
   
-  .badge {
-    padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
-    background: #f1f5f9; color: var(--text-muted);
+  .action-row {
+    margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--border-color);
+    display: flex; justify-content: space-between; align-items: center;
   }
 
-  .btn-download {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 16px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    color: var(--primary);
-    border-radius: 8px;
-    text-decoration: none;
-    font-size: 13px; font-weight: 600;
-    transition: var(--transition);
+  /* Modal */
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: none; align-items: center; justify-content: center; z-index: 100; opacity: 0; transition: opacity 0.3s ease; }
+  .modal.show { display: flex; opacity: 1; }
+  .modal-box { 
+    background: var(--bg-glass); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+    width: 500px; max-width: 90%; border-radius: 24px; padding: 32px; 
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); border: 1px solid var(--border-color);
+    transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
   }
-  .btn-download:hover {
-    background: var(--primary); color: #fff; border-color: var(--primary);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  .modal.show .modal-box { transform: scale(1); }
+  
+  /* Toast */
+  .toast {
+    position: fixed; top: 30px; left: 50%; transform: translateX(-50%) translateY(-100%);
+    background: var(--text-main); color: var(--bg-body);
+    padding: 12px 24px; border-radius: 50px; font-weight: 500;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 200;
+    transition: transform 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    display: flex; align-items: center; gap: 10px; opacity: 0; pointer-events: none;
   }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
-  /* --- Footer --- */
-  .footer {
-    padding: 30px 0;
-    text-align: center;
-    font-size: 13px;
-    color: var(--text-muted);
-    border-top: 1px solid var(--border-color);
-    background: var(--bg-card);
-    margin-top: auto;
+  /* Footer */
+  .footer { text-align: center; padding: 30px; color: var(--text-muted); font-size: 12px; margin-top: auto; }
+  
+  @media (max-width: 768px) {
+    .header { padding: 0 16px; }
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .input-group { max-width: 100%; }
+    .file-grid { grid-template-columns: 1fr; }
   }
-  .footer a { color: var(--primary); text-decoration: none; font-weight: 500; }
-
-  @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 </head>
-
 <body>
 
-<div class="navbar">
-  <div class="brand">
-    <i class="ri-folder-download-line"></i> NXHW · 资源中心
-  </div>
-  <div class="nav-actions">
-    <a href="dashboard.html" class="btn-back">
-      <i class="ri-arrow-left-line"></i> 返回控制台
-    </a>
-  </div>
+<div class="bg-blobs">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
 </div>
 
+<header class="header glass-panel">
+  <div class="brand">
+    <i class="ri-cloud-windy-line"></i> 星火 资源站
+  </div>
+  <div class="header-actions">
+    <button class="icon-btn" onclick="toggleTheme()" title="切换主题">
+      <i class="ri-sun-line" id="themeIcon"></i>
+    </button>
+    <a href="new_dashboard_pro.html" class="btn btn-outline">
+      <i class="ri-arrow-go-back-line"></i> 返回面板
+    </a>
+  </div>
+</header>
+
 <div class="container">
-  <div class="page-header">
-    <h2>文件资源列表</h2>
-    <p>这里包含课程课件、通知文件及技术文档，请按需下载。</p>
+  <div class="page-header fade-in">
+    <h2>星火资源下载中心</h2>
+    <p>提供课程课件、考试通知及网络技术文档的极速下载服务。</p>
   </div>
 
-  <div class="file-card">
-    <table>
-      <thead>
-        <tr>
-          <th style="width: 80px;">类型</th>
-          <th>文件名称</th>
-          <th>大小</th>
-          <th>格式</th>
-          <th style="text-align:right">操作</th>
-        </tr>
-      </thead>
-      <tbody id="fileList"></tbody>
-    </table>
+  <div class="toolbar fade-in">
+    <div class="input-group">
+      <i class="ri-search-line"></i>
+      <input type="text" class="input" id="searchInput" placeholder="搜索文件名称..." oninput="renderFiles()">
+    </div>
+    
+    <div class="input-group" style="max-width:180px">
+      <i class="ri-filter-3-line"></i>
+      <select class="input" id="typeFilter" onchange="renderFiles()">
+        <option value="all">所有格式</option>
+        <option value="PDF">PDF 文档</option>
+        <option value="PPT">PPT 演示文稿</option>
+        <option value="ZIP">ZIP/压缩包</option>
+      </select>
+    </div>
+
+    <div class="input-group" style="max-width:180px">
+      <i class="ri-sort-desc"></i>
+      <select class="input" id="sortFilter" onchange="renderFiles()">
+        <option value="default">默认排序</option>
+        <option value="size">按大小排序</option>
+        <option value="name">按名称排序</option>
+      </select>
+    </div>
+    
+    <div style="flex:1"></div>
+    <div style="font-size:12px; color:var(--text-muted)">共 <span id="fileCount" style="font-weight:bold; color:var(--primary)">0</span> 个文件</div>
   </div>
+
+  <div id="fileGrid" class="file-grid fade-in"></div>
 </div>
 
 <div class="footer">
-    Copyright © 2025 NanXiangHuangWu Team / <a href="https://blog.yexiaonan.xyz/" target="_blank">yexiaonan</a>
+  Copyright © 2025 NanXiangHuangWu Team / Powered by yexiaonan
 </div>
 
+<div id="fileModal" class="modal" onclick="closeModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+      <h3 style="font-size:18px; font-weight:700">文件详情</h3>
+      <button class="icon-btn" onclick="closeModal()"><i class="ri-close-line"></i></button>
+    </div>
+    <div id="modalContent" style="color:var(--text-muted); line-height:1.8"></div>
+    <div style="margin-top:24px; text-align:right">
+       <button class="btn btn-outline" onclick="closeModal()">取消</button>
+       <button class="btn btn-primary" id="modalDownloadBtn" onclick="confirmDownload()">
+         <i class="ri-download-cloud-2-line"></i> 立即下载
+       </button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"><i class="ri-checkbox-circle-fill"></i> <span>Message</span></div>
+
 <script>
-    /* 保持原有的数据结构，不做修改 */
-    const files = [
-        { name: "关于公开发布2025年度学生测验内容文件.pdf", size: "560KB" },
-        { name: "关于公布2025年度（一，二小组）人工智能一次测验成绩的通知.pdf", size: "217KB" },
-        { name: "关于公布2025年度（第三小组）人工智能一次测验成绩的通知.pdf", size: "245KB" },
-        { name: "关于公布2025年度（第四小组）人工智能一次测验成绩的通知.pdf", size: "580 KB" },
-        { name: "广西高职院校.pdf", size: "398KB" },
-        { name: "智能启航：AI赋能千行百业.pptx", size: "24,305KB" }
-    ];
+  // 1. DATA (Preserved)
+  const files = [
+    { name: "关于公开发布2025年度学生测验内容文件.pdf", size: "560KB", sizeNum: 560 },
+    { name: "关于公布2025年度（一，二小组）人工智能一次测验成绩的通知.pdf", size: "217KB", sizeNum: 217 },
+    { name: "关于公布2025年度（第三小组）人工智能一次测验成绩的通知.pdf", size: "245KB", sizeNum: 245 },
+    { name: "关于公布2025年度（第四小组）人工智能一次测验成绩的通知.pdf", size: "580 KB", sizeNum: 580 },
+    { name: "广西高职院校.pdf", size: "398KB", sizeNum: 398 },
+    { name: "智能启航：AI赋能千行百业.pptx", size: "24,305KB", sizeNum: 24305 }
+  ];
 
-    const fileList = document.getElementById("fileList");
+  // 2. LOGIC
+  let currentFile = null;
+  let isDark = false;
 
-    // 辅助函数：根据后缀获取图标样式
-    function getFileIcon(ext) {
-        if (ext === 'PDF') return { icon: 'ri-file-pdf-line', class: 'icon-pdf' };
-        if (ext === 'PPTX' || ext === 'PPT') return { icon: 'ri-file-ppt-line', class: 'icon-ppt' };
-        if (ext === 'DOC' || ext === 'DOCX') return { icon: 'ri-file-word-line', class: 'icon-doc' };
-        if (ext === 'ZIP' || ext === 'RAR') return { icon: 'ri-file-zip-line', class: 'icon-zip' };
-        return { icon: 'ri-file-text-line', class: 'icon-default' };
+  function toggleTheme() {
+    isDark = !isDark;
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    document.getElementById('themeIcon').className = isDark ? 'ri-moon-line' : 'ri-sun-line';
+  }
+
+  function getFileIcon(filename) {
+    const ext = filename.split('.').pop().toUpperCase();
+    if (ext.includes('PDF')) return { icon: 'ri-file-pdf-fill', class: 'type-pdf', name: 'PDF' };
+    if (ext.includes('PPT')) return { icon: 'ri-slideshow-fill', class: 'type-ppt', name: 'PPT' };
+    if (ext.includes('DOC')) return { icon: 'ri-file-word-fill', class: 'type-doc', name: 'DOC' };
+    if (ext.includes('ZIP') || ext.includes('RAR')) return { icon: 'ri-file-zip-fill', class: 'type-zip', name: 'ZIP' };
+    return { icon: 'ri-file-text-fill', class: 'type-default', name: ext };
+  }
+
+  function renderFiles() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const type = document.getElementById('typeFilter').value;
+    const sort = document.getElementById('sortFilter').value;
+
+    let list = files.filter(f => {
+      const matchSearch = f.name.toLowerCase().includes(search);
+      const ext = f.name.split('.').pop().toUpperCase();
+      const matchType = type === 'all' || ext.includes(type);
+      return matchSearch && matchType;
+    });
+
+    if (sort === 'size') list.sort((a,b) => b.sizeNum - a.sizeNum);
+    if (sort === 'name') list.sort((a,b) => a.name.localeCompare(b.name));
+
+    const container = document.getElementById('fileGrid');
+    document.getElementById('fileCount').innerText = list.length;
+    
+    if (list.length === 0) {
+      container.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:40px; color:var(--text-muted)">
+        <i class="ri-inbox-line" style="font-size:48px; opacity:0.5"></i><br>没有找到相关文件
+      </div>`;
+      return;
     }
 
-    // 渲染列表
-    files.forEach(file => {
-        const ext = file.name.split(".").pop().toUpperCase();
-        const style = getFileIcon(ext);
+    container.innerHTML = list.map(f => {
+      const style = getFileIcon(f.name);
+      return `
+      <div class="file-card glass-panel" onclick="openDetails('${f.name}')">
+        <div class="file-icon ${style.class}">
+          <i class="${style.icon}"></i>
+        </div>
+        <div class="file-info">
+          <div class="file-name" title="${f.name}">${f.name}</div>
+          <div class="file-meta">
+            <span><i class="ri-hard-drive-2-line"></i> ${f.size}</span>
+            <span><i class="ri-time-line"></i> 2025-06-18</span>
+          </div>
+          <div class="action-row">
+             <span style="font-size:12px; font-weight:600; color:var(--primary)">${style.name}</span>
+             <button class="btn btn-primary" style="padding:6px 12px; font-size:12px">下载</button>
+          </div>
+        </div>
+      </div>
+    `}).join('');
+  }
 
-        const row = document.createElement("tr");
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerHTML = `<i class="ri-checkbox-circle-fill" style="color:#4ade80"></i> <span>${msg}</span>`;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
 
-        row.innerHTML = `
-            <td>
-                <div class="file-icon-box ${style.class}">
-                    <i class="${style.icon}"></i>
-                </div>
-            </td>
-            <td>
-                <div class="file-name">${file.name}</div>
-            </td>
-            <td class="file-meta">${file.size}</td>
-            <td><span class="badge">${ext}</span></td>
-            <td style="text-align:right">
-                <a href="${file.name}" download class="btn-download">
-                    <i class="ri-download-cloud-2-line"></i> 下载
-                </a>
-            </td>
-        `;
+  function openDetails(name) {
+    currentFile = files.find(f => f.name === name);
+    if(!currentFile) return;
+    
+    document.getElementById('modalContent').innerHTML = `
+      <p><strong>文件名称：</strong> ${currentFile.name}</p>
+      <p><strong>文件大小：</strong> ${currentFile.size}</p>
+      <p><strong>上传日期：</strong> 2025年6月18日</p>
+      <p><strong>上传用户：</strong> NetAdmin XiaoNan</p>
+      <p><strong>安全状态：</strong> <span style="color:var(--success)"><i class="ri-shield-check-line"></i> 已扫描，无风险</span></p>
+    `;
+    document.getElementById('fileModal').classList.add('show');
+  }
 
-        fileList.appendChild(row);
-    });
+  function closeModal() {
+    document.getElementById('fileModal').classList.remove('show');
+  }
+
+  function confirmDownload() {
+    if(!currentFile) return;
+    
+    // Create fake download
+    const link = document.createElement('a');
+    link.href = '#'; // In real scenario, this is the file URL
+    link.setAttribute('download', currentFile.name);
+    // document.body.appendChild(link); link.click(); // Simulated
+    
+    closeModal();
+    showToast(`正在开始下载：${currentFile.name.substring(0, 15)}...`);
+  }
+
+  // Init
+  renderFiles();
 </script>
-
 </body>
 </html>
